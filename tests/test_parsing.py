@@ -6,12 +6,12 @@ from turtles.parsing import parse, grammar
 
 # To turn into tests:
 """
-'[deferred: thing]
+'[deferred thing]
 '[8]  --comment
 """
 # Bracketed constructs should ultimately lose their brackets:
-# show: "hey"
-# frob: thing with: thong
+# show "hey"
+# frob thing with thong
 # 1 + 2
 
 # Quoted bracketed constructs should get just brackets:
@@ -34,8 +34,8 @@ def test_no_brackets_in_words():
 def test_smoke():
     """Smoke-test all the constructs."""
     parse('[8]')
-    parse('[show: "hey"]')
-    parse('[frob: thing with: thong]')
+    parse('[show "hey"]')
+    parse('[frob thing with thong]')
     parse('["this" "thing"]')
     parse('[[] []]')
     parse('[key: value key2: value2 orphan]')
