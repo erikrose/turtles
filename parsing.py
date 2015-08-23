@@ -16,13 +16,14 @@ grammar = Grammar(r"""
     paren = "(" _ item* ")" _
 
     # An item is an element of a list.
-    item = path / number / text / word / list / paren
+    item = path / number / text / colon_word / word / list / paren
 
     # Words are barewords, unquoted things, other than literals, that can live
     # in lists. We may renege on some of these chars later, especially ".". We
     # may add Unicode.
     word = spaceless_word _
-    spaceless_word = ~r"[-a-z`~!@#$%^&*_+=|\\:;<>,.?][-a-z0-9`~!@#$%^&*_+=|\\:;<>,.?]*"i
+    colon_word = spaceless_word ":" _
+    spaceless_word = ~r"[-a-z`~!@#$%^&*_+=|\\;<>,.?][-a-z0-9`~!@#$%^&*_+=|\\;<>,.?]*"i
 
     # Strings are multiline atm. This may change if we find a reason.
     text = spaceless_text _
