@@ -41,3 +41,12 @@ def test_smoke():
     parse('[key: value key2: value2 orphan]')
     parse('[1 + (2 + 3)]')
     parse('[funcs: [term/on-red 8 "foo"]]')
+
+
+def test_comments():
+    # TODO: Replace this uncompared calls to parse() with something better once
+    # we get visitation going. The tree structure is too brittle until then to
+    # test against.
+    parse("""[8 -- comment
+             "teen"]""")
+    parse('["hey -- dude"]')

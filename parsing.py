@@ -37,7 +37,10 @@ grammar = Grammar(r"""
     path = path_item ("/" path_item)+ _
     path_item = spaceless_word / spaceless_text / spaceless_int
 
-    _ = ~r"[ \t]*"
+    _ = meaninglessness*
+    meaninglessness = whitespace / comment
+    whitespace = ~r"\s+"  # TODO: Exclude vertical whitespace when we make it significant.
+    comment = ~r"--[^\r\n]*"
 
     """)
 
