@@ -1,8 +1,9 @@
 from nose.tools import eq_, assert_raises
 from parsimonious import ParseError
 from parsimonious.nodes import Node, RegexNode
+from parsimonious.utils import Token as T
 
-from turtles.parsing import parse, grammar
+from turtles.parsing import lex, parse, grammar
 
 # To turn into tests:
 """
@@ -50,3 +51,16 @@ def test_comments():
     parse("""[8 -- comment
              "teen"]""")
     parse('["hey -- dude"]')
+
+
+def test_lex():
+    eq_(list(lex('[  ]')), [T('bracket'),
+                            T('horizontal_whitespace'),
+                            T('end_bracket')])
+    eq_(list(lex(
+"""foo
+    bar""")), [T('word'), T('newline'), T('indent'), T('indent'), T('word')])
+    eq_(list(lex(
+"""foo
+  bar
+baz""")), [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('dedent'), T('word')])

@@ -3,7 +3,10 @@
 Hey, you've got to start somewhere! :-D
 
 """
+import re
+
 from parsimonious import Grammar
+from parsimonious.utils import Token
 
 
 grammar = Grammar(r"""
@@ -47,4 +50,52 @@ grammar = Grammar(r"""
 
 
 def parse(text):
-    return grammar.parse(text)
+    return grammar.parse(list(lex(text)))
+
+
+TOKEN_RE = re.compile(r'(?P<newline>\n)|'
+                      # Can't just make this '^ *', because finditer omits
+                      # overlapping matches, making an empty indent still eat a
+                      # char:
+                      r'(?P<dent>^ +)|'
+                      r'(?P<bracket>\[)|'
+                      r'(?P<end_bracket>\])|'
+                      r'(?P<horizontal_whitespace>[ \t]+)|'
+                      r'(?P<word>[-a-zA-Z]+)',
+                      flags=re.M)
+def lex(text):
+    """Scan a string, and break it down into an iterable of Tokens."""
+    indent_level = 0
+    openers = []  # ['(', '[', '(', '(']
+    just_saw_newline = False  # Keep track of whether the previous token was a newline, so we can detect empty indents.
+    for match in TOKEN_RE.finditer(text):
+        type = match.lastgroup
+        contents = match.group()
+        if type == 'newline':
+            just_saw_newline = True
+        else:
+            type_is_dent = type == 'dent'
+            if (type_is_dent or
+                just_saw_newline):  # Newline was followed by a non-indent
+                                    # token, so indent is 0.
+                dent_length = len(contents) if type_is_dent else 0
+                new_level, remainder = divmod(dent_length, 2)
+                if remainder:
+                    raise LexError('Indentation was not a multiple of 2 spaces.',
+                                   match.span())
+                dent_type = 'indent' if new_level > indent_level else 'dedent'
+                for _ in xrange(abs(new_level - indent_level)):
+                    yield Token(dent_type)
+                indent_level = new_level
+                if type_is_dent:
+                    just_saw_newline = False
+                    continue
+
+            just_saw_newline = False
+        yield Token(type)
+
+# TODO: Ignore indents inside parens and brackets.
+# Test: A skipped blank or more indented empty line between indented ones shouldn't touch indent level.
+
+# NEXT: Probably implement indentation sensitivity. I want to start coding stuff, and I don't want to look at brackets.
+# Or, implement the visitor, function definition, and dispatch.
