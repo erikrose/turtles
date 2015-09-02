@@ -70,10 +70,10 @@ def lex(text):
     just_saw_newline = False  # Keep track of whether the previous token was a newline, so we can detect empty indents.
     for match in TOKEN_RE.finditer(text):
         type = match.lastgroup
-        contents = match.group()
         if type == 'newline':
             just_saw_newline = True
         else:
+            contents = match.group()
             type_is_dent = type == 'dent'
             if (type_is_dent or
                 just_saw_newline):  # Newline was followed by a non-indent
@@ -87,12 +87,10 @@ def lex(text):
                 for _ in xrange(abs(new_level - indent_level)):
                     yield Token(dent_type)
                 indent_level = new_level
-                if type_is_dent:
-                    just_saw_newline = False
-                    continue
 
             just_saw_newline = False
-            yield Token(type)
+            if not type_is_dent:
+                yield Token(type)
 
 # TODO: Ignore indents inside parens and brackets.
 # Test: A skipped blank or more indented empty line between indented ones shouldn't touch indent level.
