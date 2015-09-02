@@ -92,7 +92,7 @@ def lex(text):
                     continue
 
             just_saw_newline = False
-        yield Token(type)
+            yield Token(type)
 
 # TODO: Ignore indents inside parens and brackets.
 # Test: A skipped blank or more indented empty line between indented ones shouldn't touch indent level.

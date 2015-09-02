@@ -59,8 +59,8 @@ def test_lex():
                             T('end_bracket')])
     eq_(list(lex(
 """foo
-    bar""")), [T('word'), T('newline'), T('indent'), T('indent'), T('word')])
+    bar""")), [T('word'), T('indent'), T('indent'), T('word')])
     eq_(list(lex(
 """foo
   bar
-baz""")), [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('dedent'), T('word')])
+baz""")), [T('word'), T('indent'), T('word'), T('dedent'), T('word')])
