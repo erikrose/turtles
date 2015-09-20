@@ -55,12 +55,27 @@ def test_comments():
 
 def test_lex():
     eq_(list(lex('[  ]')), [T('bracket'),
-                            T('horizontal_whitespace'),
                             T('end_bracket')])
     eq_(list(lex(
 """foo
-    bar""")), [T('word'), T('indent'), T('indent'), T('word')])
+    bar""")), [T('word'), T('newline'), T('indent'), T('word'), T('outdent')])
     eq_(list(lex(
 """foo
   bar
-baz""")), [T('word'), T('indent'), T('word'), T('dedent'), T('word')])
+baz""")), [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('outdent'), T('word')])
+    eq_(list(lex(
+"""
+if smoo
+    love
+  else
+    if things
+        buck
+  elves
+    nope
+""")), [T('newline'), T('word'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('partial_outdent'), T('word'), T('newline'), T('indent'), T('word'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('outdent'), T('outdent'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('outdent'), T('outdent')])
+    # Try mixing tabs and spaces:
+    eq_(list(lex("""
+hi
+    smoo
+    \t\tbar
+    \thi""")), [T('newline'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('partial_outdent'), T('word'), T('outdent'), T('outdent')])

@@ -8,6 +8,8 @@ import re
 from parsimonious import Grammar
 from parsimonious.utils import Token
 
+from turtles.exceptions import LexError
+
 
 grammar = Grammar(r"""
     list = bracketed_list  # / block
@@ -48,52 +50,78 @@ grammar = Grammar(r"""
 
     """)
 
+# TokenGrammar:
+r"""
+file = (newline / statement)*
+statement = brace / block
+brace = "{" simple_statement ...whatever
+block = statement_unindented / statement_indented
+statement_indented = indent statement dedent
+
+file = line*
+statement = word
+suite = 
+line = "word" / block
+block = "newline" "indent" stuff "dedent"
+
+suite = simple / compound
+simple = 
+compound = "indent" suite "dedent"
+
+suite = "indent" expression "dedent"
+expression = 
+"""
+
 
 def parse(text):
     return grammar.parse(list(lex(text)))
 
 
-TOKEN_RE = re.compile(r'(?P<newline>\n)|'
-                      # Can't just make this '^ *', because finditer omits
-                      # overlapping matches, making an empty indent still eat a
-                      # char:
-                      r'(?P<dent>^ +)|'
+TOKEN_RE = re.compile(r'(?P<newline_and_dent>\n([ \t]*))|'
                       r'(?P<bracket>\[)|'
                       r'(?P<end_bracket>\])|'
                       r'(?P<horizontal_whitespace>[ \t]+)|'
-                      r'(?P<word>[-a-zA-Z]+)',
+                      r'(?P<word>[-a-zA-Z]+)|'
+                      r'(?P<unmatched>.)',
                       flags=re.M)
 def lex(text):
     """Scan a string, and break it down into an iterable of Tokens."""
-    indent_level = 0
-    openers = []  # ['(', '[', '(', '(']
-    just_saw_newline = False  # Keep track of whether the previous token was a newline, so we can detect empty indents.
+    indents = ['']  # The indents we're inside of
     for match in TOKEN_RE.finditer(text):
         type = match.lastgroup
-        if type == 'newline':
-            just_saw_newline = True
-        else:
-            contents = match.group()
-            type_is_dent = type == 'dent'
-            if (type_is_dent or
-                just_saw_newline):  # Newline was followed by a non-indent
-                                    # token, so indent is 0.
-                dent_length = len(contents) if type_is_dent else 0
-                new_level, remainder = divmod(dent_length, 2)
-                if remainder:
-                    raise LexError('Indentation was not a multiple of 2 spaces.',
-                                   match.span())
-                dent_type = 'indent' if new_level > indent_level else 'dedent'
-                for _ in xrange(abs(new_level - indent_level)):
-                    yield Token(dent_type)
-                indent_level = new_level
+        if type == 'newline_and_dent':
+            yield Token('newline')
+            old_indent = indents[-1]
+            new_indent = match.group(2)
+            if new_indent == old_indent:
+                pass
+            elif new_indent.startswith(old_indent) and len(new_indent) > len(old_indent):
+                yield Token('indent')
+                indents.append(new_indent)
+            elif old_indent.startswith(new_indent):
+                # Emit outdents while we can still outdent a level without
+                # going farther left than the new indent:
+                while indents != [''] and indents[-2].startswith(new_indent):
+                    indents.pop()
+                    yield Token('outdent')
 
-            just_saw_newline = False
-            if not type_is_dent:
-                yield Token(type)
+                # See if we need a partial outdent:
+                if indents != [''] and len(indents[-1]) > len(new_indent) and indents[-1].startswith(new_indent):  # We still have to go out farther, but we need to split an indent to do it.
+                    # Chop the new_indent off the end of the top indent of the
+                    # stack:
+                    indents[-1] = indents[-1][:-len(new_indent)]
+                    yield Token('partial_outdent')
+            else:
+                raise LexError("Indentation was not consistent. The whitespace characters that make up each indent must be either an addition to or a truncation of the ones in the indent above. You can't just swap out tabs for spaces between lines.")
+        elif type == 'unmatched':
+            raise LexError('Unrecognized token')
+        elif type != 'horizontal_whitespace':  # We aren't interested in emitting that.
+            yield Token(type)
+    # Close all remaining open indents:
+    for _ in xrange(len(indents) - 1):
+        yield Token('outdent')
 
-# TODO: Ignore indents inside parens and brackets.
-# Test: A skipped blank or more indented empty line between indented ones shouldn't touch indent level.
 
-# NEXT: Probably implement indentation sensitivity. I want to start coding stuff, and I don't want to look at brackets.
-# Or, implement the visitor, function definition, and dispatch.
+# TODO: Ignore indents inside parens and brackets. Keep track of the stack of them, and ignore dents inside any openers at all.
+# NEXT: A skipped blank or more indented empty line between indented ones shouldn't touch indent level.
+# More next: implement the visitor, function definition, and dispatch.
