@@ -77,7 +77,9 @@ def parse(text):
     return grammar.parse(list(lex(text)))
 
 
-TOKEN_RE = re.compile(r'(?P<newline_and_dent>\n([ \t]*))|'
+TOKEN_RE = re.compile(r'(?P<skipped_line>\n[ \t]*(?:#.*|)$)|'
+                      # ^ A line that's just whitespace and/or comment
+                      r'(?P<newline_and_dent>\n(?P<dent>[ \t]*))|'
                       r'(?P<bracket>\[)|'
                       r'(?P<end_bracket>\])|'
                       r'(?P<horizontal_whitespace>[ \t]+)|'
@@ -92,7 +94,7 @@ def lex(text):
         if type == 'newline_and_dent':
             yield Token('newline')
             old_indent = indents[-1]
-            new_indent = match.group(2)
+            new_indent = match.group('dent')
             if new_indent == old_indent:
                 pass
             elif new_indent.startswith(old_indent) and len(new_indent) > len(old_indent):
@@ -115,7 +117,7 @@ def lex(text):
                 raise LexError("Indentation was not consistent. The whitespace characters that make up each indent must be either an addition to or a truncation of the ones in the indent above. You can't just swap out tabs for spaces between lines.")
         elif type == 'unmatched':
             raise LexError('Unrecognized token')
-        elif type != 'horizontal_whitespace':  # We aren't interested in emitting that.
+        elif type not in ('horizontal_whitespace', 'skipped_line'):  # We aren't interested in emitting these.
             yield Token(type)
     # Close all remaining open indents:
     for _ in xrange(len(indents) - 1):

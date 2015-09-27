@@ -79,3 +79,21 @@ hi
     smoo
     \t\tbar
     \thi""")), [T('newline'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('partial_outdent'), T('word'), T('outdent'), T('outdent')])
+
+
+def test_ignore_empty_line_dents():
+    """Empty lines or ones consisting wholly of spaces shouldn't affect the
+    indentation."""
+    eq_(list(lex("""foo\n        \n  bar\nbaz""")),
+        [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('outdent'), T('word')])
+    eq_(list(lex(
+"""foo
+  bar
+  baz""")),
+        [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('word'), T('outdent')])
+    eq_(list(lex(
+"""foo
+  bar
+
+  baz""")),
+        [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('word'), T('outdent')])
