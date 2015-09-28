@@ -11,6 +11,8 @@ from parsimonious.utils import Token
 from turtles.exceptions import LexError
 
 
+# A second-level grammar may be derived from this, with the TokenGrammar
+# functioning as the first-level grammar:
 grammar = Grammar(r"""
     list = bracketed_list  # / block
     bracketed_list = "[" _ item* "]" _
@@ -52,24 +54,12 @@ grammar = Grammar(r"""
 
 # TokenGrammar:
 r"""
-file = (newline / statement)*
-statement = brace / block
-brace = "{" simple_statement ...whatever
-block = statement_unindented / statement_indented
-statement_indented = indent statement dedent
-
-file = line*
-statement = word
-suite = 
-line = "word" / block
-block = "newline" "indent" stuff "dedent"
-
-suite = simple / compound
-simple = 
-compound = "indent" suite "dedent"
-
-suite = "indent" expression "dedent"
-expression = 
+sentences = sentence+  # Good for a file
+sentence = line blocks?
+line     = "word"+ "newline"
+blocks   = "indent" sentences other_blocks? "outdent"
+other_blocks = "partial_outdent" other_block+
+other_block = line "indent" sentences "outdent"  # demands a block under each partial-outdented line. There's no technical reason to require this if we don't want to.
 """
 
 
@@ -87,7 +77,12 @@ TOKEN_RE = re.compile(r'(?P<skipped_line>\n[ \t]*(?:#.*|)$)|'
                       r'(?P<unmatched>.)',
                       flags=re.M)
 def lex(text):
-    """Scan a string, and break it down into an iterable of Tokens."""
+    """Scan a string, and break it down into an iterable of Tokens.
+
+    At the moment, these are very language-independent: just alphabetic words
+    separated by whitespace, along with whitespace-based indents.
+
+    """
     indents = ['']  # The indents we're inside of
     for match in TOKEN_RE.finditer(text):
         type = match.lastgroup
