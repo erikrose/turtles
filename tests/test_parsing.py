@@ -102,3 +102,16 @@ def test_ignore_empty_line_dents():
 
   baz""")),
         [T('word'), T('newline'), T('indent'), T('word'), T('newline'), T('word'), T('outdent')])
+
+
+def test_ignore_newlines_inside_brackets():
+    """Like in Python, newlines and dents shouldn't mean anything inside
+    parenthesized or bracketed expressions."""
+    eq_(list(lex(
+"""reem [
+    stir
+] turv""")), [T('word'), T('bracket'), T('word'), T('end_bracket'), T('word')])
+    eq_(list(lex(
+"""reem (
+    stir
+) turv""")), [T('word'), T('paren'), T('word'), T('end_paren'), T('word')])
